@@ -9,6 +9,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch --env-file-if-exists=.env server.js",
+    "test": "node --test test/",
     "seed": "node scripts/seed.js",
     "seed:records": "node scripts/seed-records.js"
   }
