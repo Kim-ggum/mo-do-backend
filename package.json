@@ -1,0 +1,15 @@
+{
+  "name": "moa",
+  "version": "1.0.0",
+  "private": true,
+  "description": "MoA (Memory of All) - 대학생활 기록 웹",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch --env-file-if-exists=.env server.js",
+    "seed": "node scripts/seed.js",
+    "seed:records": "node scripts/seed-records.js"
+  }
+}

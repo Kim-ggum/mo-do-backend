@@ -1,0 +1,1042 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MoA</title>
+<link rel="icon" type="image/png" href="/assets/img.png">
+<link rel="apple-touch-icon" href="/assets/img.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap">
+<style>
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+/* Layout: white three-column app from the supplied screen — thin rail, month grid, day drawer. Photos carry all the colour. */
+:root {
+  --bg: #ffffff; --soft: #f3f3f4; --softer: #f8f8f9; --line: #e7e7e9;
+  --ink: #1b1b1d; --muted: #6d6d73; --faint: #a3a3a9;
+  --strong: #1b1b1d; --on-strong: #ffffff; --danger: #c23a3a;
+  --drawer-shadow: -12px 0 32px rgba(20,20,24,.06);
+  --font: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --c-blue: #3f83d8; --c-teal: #1f9c94; --c-green: #4aa35a; --c-amber: #dba11c; --c-orange: #e4773a; --c-rose: #dd5b7e; --c-violet: #8466dc; --c-slate: #76808c;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #17181a; --soft: #26272a; --softer: #1e1f22; --line: #313236;
+  --ink: #ededef; --muted: #a2a2a9; --faint: #6f6f76;
+  --strong: #ededef; --on-strong: #17181a; --danger: #ee8080;
+  --drawer-shadow: -12px 0 32px rgba(0,0,0,.35);
+  color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --bg: #17181a; --soft: #26272a; --softer: #1e1f22; --line: #313236;
+  --ink: #ededef; --muted: #a2a2a9; --faint: #6f6f76;
+  --strong: #ededef; --on-strong: #17181a; --danger: #ee8080;
+  --drawer-shadow: -12px 0 32px rgba(0,0,0,.35);
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--ink); font: 400 14px/1.55 var(--font); word-break: keep-all; overflow-wrap: anywhere; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { background: none; border: 0; cursor: pointer; padding: 0; }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+h1, h2, h3, p { margin: 0; }
+
+.app { height: 100%; display: grid; grid-template-columns: 188px minmax(0,1fr) 372px; }
+.app.no-panel { grid-template-columns: 188px minmax(0,1fr); }
+
+/* rail */
+.side { display: flex; flex-direction: column; gap: 6px; min-height: 0; overflow: auto; border-right: 1px solid var(--line); padding-block: 20px 16px; padding-right: 12px; padding-left: max(12px, env(safe-area-inset-left, 0px)); }
+.logo { display: flex; align-items: center; gap: 10px; padding: 0 8px 14px; flex: none; }
+.logo img { width: 28px; height: 28px; border-radius: 7px; flex: none; box-shadow: 0 0 0 1px var(--line); }
+.logo b { font-size: 15px; font-weight: 700; white-space: nowrap; }
+.nav { display: flex; align-items: center; gap: 9px; width: 100%; padding: 8px 10px; border-radius: 9px; text-align: left; font-size: 13px; font-weight: 500; white-space: nowrap; }
+.nav:hover { background: var(--softer); }
+.nav.on { background: var(--soft); }
+.nav svg { flex: none; }
+.group { display: flex; flex-direction: column; gap: 1px; margin-top: 8px; padding-top: 10px; border-top: 1px solid var(--line); }
+.group-head { display: flex; justify-content: space-between; align-items: center; padding: 0 4px 3px 10px; font-size: 11.5px; color: var(--muted); }
+.cal-row { display: flex; align-items: center; border-radius: 9px; }
+.cal-row:hover { background: var(--softer); }
+.cal-row.on { background: var(--soft); }
+.row-gear { width: 26px; height: 26px; opacity: 0; }
+.cal-row:hover .row-gear, .cal-row.on .row-gear, .row-gear:focus-visible { opacity: 1; }
+@media (hover: none) { .cal-row:not(.on) .row-gear { display: none; } }
+.dot-btn { display: grid; place-items: center; width: 30px; height: 30px; flex: none; }
+.ring { display: block; width: 10px; height: 10px; border-radius: 50%; box-sizing: border-box; border: 2px solid var(--c, var(--faint)); flex: none; }
+.ring.fill { background: var(--c, var(--ink)); }
+.lock { display: inline-block; vertical-align: -1px; margin-left: 4px; color: var(--muted); }
+.cal-name { flex: 1; min-width: 0; padding: 5px 8px 5px 0; text-align: left; font-size: 13px; }
+.hint { padding: 2px 10px 4px; font-size: 12px; color: var(--faint); }
+.side-foot { margin-top: auto; padding-top: 10px; }
+.icon-btn { width: 28px; height: 28px; border-radius: 8px; display: inline-grid; place-items: center; color: var(--muted); flex: none; }
+.icon-btn:hover { background: var(--soft); color: var(--ink); }
+
+/* main */
+.main { display: flex; flex-direction: column; gap: 14px; min-width: 0; min-height: 0; overflow: auto; padding: 22px 24px; }
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.title-wrap { position: relative; }
+.title-btn { display: inline-flex; align-items: center; gap: 8px; }
+.top h1 { font-size: 21px; font-weight: 700; letter-spacing: -.02em; }
+.menu { position: absolute; z-index: 15; top: calc(100% + 6px); left: 0; min-width: 210px; max-height: 320px; overflow: auto; padding: 6px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); box-shadow: 0 10px 28px rgba(20,20,24,.12); }
+.menu button { display: block; width: 100%; padding: 7px 10px; border-radius: 8px; text-align: left; font-size: 13px; }
+.menu button:hover { background: var(--soft); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 7px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); font-size: 13px; font-weight: 500; white-space: nowrap; }
+.btn:hover { background: var(--softer); }
+.btn.primary { background: var(--strong); border-color: var(--strong); color: var(--on-strong); }
+.btn.primary:hover { opacity: .88; }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn.wide { width: 100%; }
+.bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.bar h2 { font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; min-width: 96px; text-align: center; }
+.seg { margin-left: auto; display: inline-flex; padding: 3px; border-radius: 999px; background: var(--soft); }
+.seg button { padding: 4px 18px; border-radius: 999px; font-size: 13px; color: var(--muted); }
+.seg button.on { background: var(--bg); color: var(--ink); font-weight: 600; box-shadow: 0 1px 2px rgba(20,20,24,.08); }
+.banner { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 9px 14px; border-radius: 10px; background: var(--soft); font-size: 13px; }
+.tag { font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); white-space: nowrap; }
+.tag.solid { background: var(--strong); border-color: var(--strong); color: var(--on-strong); }
+
+.cal { flex: 1; min-height: 430px; display: grid; grid-template-rows: auto minmax(0,1fr); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.dow { display: grid; grid-template-columns: repeat(7, minmax(0,1fr)); border-bottom: 1px solid var(--line); font-size: 12.5px; color: var(--ink); text-align: center; }
+.dow span { padding: 9px 0; border-right: 1px solid var(--line); }
+.dow span:last-child { border-right: 0; }
+.grid { display: grid; grid-template-columns: repeat(7, minmax(0,1fr)); grid-auto-rows: minmax(0,1fr); }
+.cell { position: relative; display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; min-width: 0; min-height: 0; overflow: hidden; text-align: left; padding: 8px 9px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.cell:nth-child(7n) { border-right: 0; }
+.cell:hover { background: var(--softer); }
+.cell.sel { background: var(--softer); }
+.cell.out .num { color: var(--faint); }
+.cell.out .stack, .cell.out .cover-text { opacity: .5; }
+.cell-top { display: flex; align-items: center; gap: 4px; flex: none; max-width: 100%; }
+.day-dots { display: flex; flex-wrap: wrap; gap: 3px; min-width: 0; }
+.day-dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--c); }
+.num { display: inline-grid; place-items: center; min-width: 26px; height: 26px; margin: -3px 0 0 -5px; border-radius: 50%; font-size: 14px; font-variant-numeric: tabular-nums; flex: none; }
+.cell.today .num { background: var(--soft); font-weight: 600; }
+.cell.sel .num { background: var(--strong); color: var(--on-strong); font-weight: 600; }
+.mark { width: 5px; height: 5px; margin: 4px 0 0 5px; border-radius: 50%; background: var(--muted); }
+.stack { position: absolute; right: 9px; bottom: 9px; width: min(72%, 88px); aspect-ratio: 6/5; max-height: calc(100% - 38px); }
+.stack img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 8px; box-shadow: 0 0 0 1.5px var(--bg), 0 1px 3px rgba(20,20,24,.18); }
+.stack img.l1 { transform: rotate(6deg) translate(3px, -2px); }
+.stack img.l2 { transform: rotate(-7deg) translate(-4px, -1px); }
+.cover-text { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; margin-top: 3px; font-size: 11.5px; line-height: 1.4; color: var(--muted); }
+.grid.wk .stack { position: relative; right: auto; bottom: auto; width: 100%; max-height: none; aspect-ratio: 1; margin-top: 8px; }
+.grid.wk .cover-text { -webkit-line-clamp: 10; }
+.dayview { display: flex; flex-direction: column; gap: 18px; max-width: 620px; }
+.dayview img, .dayview video { display: block; width: 100%; max-height: 420px; object-fit: cover; border-radius: 12px; }
+.dayview p { white-space: pre-wrap; }
+.dayview > div { display: flex; flex-direction: column; gap: 10px; }
+.empty { display: grid; place-items: center; gap: 10px; text-align: center; padding: 56px 16px; color: var(--muted); }
+
+/* day drawer */
+.panel { display: flex; flex-direction: column; gap: 16px; min-height: 0; overflow: auto; padding-block: 22px; padding-left: 20px; padding-right: max(20px, env(safe-area-inset-right, 0px)); border-left: 1px solid var(--line); box-shadow: var(--drawer-shadow); background: var(--bg); }
+.panel-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.panel-head h2 { font-size: 17px; font-weight: 600; }
+.sub { font-size: 12.5px; color: var(--muted); }
+.cal-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.cal-tab { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 3px 11px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+.cal-tab.on { background: var(--strong); border-color: var(--strong); color: var(--on-strong); font-weight: 600; }
+.post { display: flex; flex-direction: column; gap: 12px; }
+.post + .post { padding-top: 16px; border-top: 1px solid var(--line); }
+.hero { position: relative; }
+.hero img, .hero video { display: block; width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 12px; background: var(--soft); }
+.hero-picks { position: absolute; top: 10px; right: 10px; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+.hero .pick { background: var(--bg); }
+.text-picks { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex: none; }
+.pick { font-size: 11.5px; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+.pick:hover { color: var(--ink); }
+.pick.on, .hero .pick.on { background: var(--strong); border-color: var(--strong); color: var(--on-strong); font-weight: 600; }
+.post-text { display: flex; align-items: flex-start; gap: 10px; }
+.post-text p { flex: 1; min-width: 0; white-space: pre-wrap; }
+.label { font-size: 11.5px; color: var(--muted); }
+.attach-wrap { display: flex; flex-direction: column; gap: 6px; padding-top: 12px; border-top: 1px solid var(--line); }
+.thumbs { display: flex; gap: 8px; flex-wrap: wrap; }
+.tn { position: relative; width: 84px; height: 76px; border-radius: 9px; overflow: hidden; background: var(--soft); }
+.tn img, .tn video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.tn.on { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--ink); }
+.tn span { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(0,0,0,.28); color: #fff; font-size: 16px; }
+.tn em { position: absolute; right: 5px; bottom: 3px; font: 500 10.5px var(--font); color: #fff; }
+.who { display: flex; align-items: center; gap: 10px; padding-top: 12px; border-top: 1px solid var(--line); }
+.avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--soft); display: grid; place-items: center; color: var(--faint); flex: none; }
+.who div { flex: 1; min-width: 0; font-size: 13px; line-height: 1.3; }
+.who small { display: block; font-size: 11.5px; color: var(--muted); }
+.ai { display: flex; flex-direction: column; gap: 8px; padding-top: 14px; border-top: 1px solid var(--line); }
+.ai-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ai h3 { font-size: 14.5px; font-weight: 600; }
+.facts { margin: 0; display: grid; grid-template-columns: 34px minmax(0,1fr); gap: 4px 8px; font-size: 13px; }
+.facts dt { color: var(--muted); }
+.facts dd { margin: 0; }
+.facts.wide { grid-template-columns: 76px minmax(0,1fr); }
+.skills { display: flex; flex-wrap: wrap; gap: 4px; }
+.skill-sum { display: flex; flex-wrap: wrap; gap: 6px; }
+.skill-sum .tag { font-size: 12px; padding: 3px 9px; }
+.skill-sum .tag b { margin-left: 4px; }
+.composer { display: flex; flex-direction: column; gap: 8px; padding-top: 14px; border-top: 1px solid var(--line); }
+.composer label.t { font-size: 12.5px; font-weight: 600; }
+.composer textarea, .field input, .field select, .field textarea, .find input { width: 100%; box-sizing: border-box; padding: 9px 11px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); }
+.composer textarea { min-height: 76px; resize: vertical; }
+.attach { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.attach input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.attach label.btn { cursor: pointer; padding: 5px 12px; font-size: 12.5px; }
+.attach input:focus-visible + .btn { outline: 2px solid var(--ink); outline-offset: 2px; }
+.check { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--muted); }
+.row-end { display: flex; justify-content: flex-end; gap: 6px; }
+.pending { display: flex; gap: 6px; flex-wrap: wrap; }
+.pending div { position: relative; width: 58px; height: 58px; border-radius: 8px; overflow: hidden; background: var(--soft); display: grid; place-items: center; font-size: 11px; color: var(--muted); text-align: center; }
+.pending img { width: 100%; height: 100%; object-fit: cover; }
+.pending .x { position: absolute; top: 2px; right: 2px; width: 18px; height: 18px; border-radius: 50%; background: rgba(0,0,0,.6); color: #fff; font-size: 12px; line-height: 18px; }
+.pending .rep-btn { display: block; width: 100%; height: 100%; }
+.pending .rep { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--ink); }
+.pending .rep em { position: absolute; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,.6); color: #fff; font: 600 10px/16px var(--font); }
+.targets { display: flex; flex-direction: column; gap: 6px; }
+.swatches { display: flex; flex-wrap: wrap; gap: 10px; }
+.swatches label { display: block; }
+.swatches input { position: absolute; opacity: 0; }
+.swatches i { display: block; width: 24px; height: 24px; border-radius: 50%; background: var(--c); }
+.swatches input:checked + i { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--c); }
+.swatches input:focus-visible + i { outline: 2px solid var(--ink); outline-offset: 5px; }
+.notice { padding: 9px 12px; border-radius: 10px; background: var(--soft); font-size: 12.5px; color: var(--muted); }
+
+/* portfolio + browse */
+.section-title { font-size: 14.5px; font-weight: 600; }
+.find { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; border-radius: 12px; background: var(--softer); }
+.find form { display: flex; gap: 8px; }
+.find input { flex: 1; min-width: 0; }
+.sem-grid { display: grid; grid-template-columns: repeat(8, minmax(0,1fr)); gap: 8px; }
+.sem { display: flex; flex-direction: column; gap: 5px; min-height: 132px; padding: 9px; border: 1px solid var(--line); border-radius: 10px; }
+.sem h3 { font-size: 12px; font-weight: 600; }
+.sem.now { border-color: var(--ink); }
+.sem.future { border-style: dashed; color: var(--faint); }
+.chip { display: block; width: 100%; text-align: left; font-size: 11.5px; line-height: 1.35; padding: 3px 7px; border-radius: 6px; background: var(--soft); }
+.chip:hover { background: var(--line); }
+.filters { display: flex; flex-wrap: wrap; gap: 6px; }
+.filter { font-size: 12.5px; padding: 3px 12px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+.filter.on { background: var(--strong); border-color: var(--strong); color: var(--on-strong); font-weight: 600; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px; }
+.acard { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; text-align: left; background: var(--bg); }
+.acard:hover { background: var(--softer); }
+.acard h3 { font-size: 14.5px; font-weight: 600; }
+.acard .sub { display: block; }
+.story { padding: 14px 16px; border-radius: 12px; background: var(--softer); white-space: pre-wrap; line-height: 1.75; }
+.strip { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 3px; border-radius: 8px; overflow: hidden; }
+.strip img, .strip i { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; background: var(--soft); }
+.ccard-meta { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+
+dialog { border: 1px solid var(--line); border-radius: 16px; background: var(--bg); color: var(--ink); padding: 20px; width: min(400px, calc(100vw - 48px)); box-sizing: border-box; }
+dialog::backdrop { background: rgba(10,10,12,.35); }
+dialog form { display: flex; flex-direction: column; gap: 14px; }
+dialog h2 { font-size: 16px; font-weight: 600; }
+.field { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; font-weight: 500; }
+.field small { font-weight: 400; color: var(--muted); }
+fieldset { border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+legend { padding: 0 0 4px; font-size: 12.5px; font-weight: 500; }
+.opt { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; }
+.opt small { display: block; color: var(--muted); }
+.people { display: flex; flex-wrap: wrap; gap: 6px; }
+.people button { font-size: 12.5px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line); }
+.people .mem { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+.people .mem button { border: 0; border-radius: 0; }
+.people .mem button + button { border-left: 1px solid var(--line); }
+.people .mem .on { background: var(--strong); color: var(--on-strong); }
+.req-badge { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--danger); color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; flex: none; }
+.req-row { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.req-row span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dlg-sep { border: 0; border-top: 1px solid var(--line); margin: 2px 0; width: 100%; }
+.dlg-foot { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+.dlg-foot .danger { margin-right: auto; color: var(--danger); }
+.toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 40; max-width: min(420px, calc(100vw - 32px)); padding: 9px 16px; border-radius: 12px; background: var(--strong); color: var(--on-strong); font-size: 13px; }
+.scrim { display: none; }
+
+.join-btn { padding: 6px 10px; text-align: left; font-size: 12.5px; color: var(--muted); }
+.join-btn:hover { color: var(--ink); }
+.share-row { display: flex; gap: 8px; }
+.share-row input { flex: 1; min-width: 0; }
+.code { font-size: 22px; font-weight: 700; letter-spacing: .12em; font-variant-numeric: tabular-nums; flex: 1; }
+.app.visitor { grid-template-columns: minmax(0,1fr) 372px; }
+.app.visitor.no-panel { grid-template-columns: minmax(0,1fr); }
+.app.visitor .side { display: none; }
+
+@media (max-width: 1160px) {
+  .app.visitor, .app.visitor.no-panel { grid-template-columns: minmax(0,1fr); }
+  .app, .app.no-panel { grid-template-columns: 176px minmax(0,1fr); }
+  .scrim { display: block; position: fixed; inset: 0; z-index: 19; background: rgba(10,10,12,.3); }
+  .panel { position: fixed; z-index: 20; top: 0; right: 0; bottom: 0; width: min(380px, 100vw); box-sizing: border-box; padding-top: calc(22px + env(safe-area-inset-top, 0px)); padding-bottom: calc(22px + env(safe-area-inset-bottom, 0px)); }
+  .sem-grid { grid-template-columns: repeat(4, minmax(0,1fr)); }
+}
+@media (max-width: 760px) {
+  html, body { height: auto; }
+  .app, .app.no-panel { height: auto; grid-template-columns: minmax(0,1fr); }
+  .side { flex-direction: row; align-items: center; gap: 4px; padding-block: 8px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+  .logo { padding: 0 6px 0 0; }
+  .logo b, .group-head span, .hint { display: none; }
+  .group { flex-direction: row; align-items: center; margin: 0; padding: 0 0 0 6px; border-top: 0; border-left: 1px solid var(--line); }
+  .group-head { padding: 0; }
+  .nav { width: auto; padding: 6px 9px; }
+  .cal-name { white-space: nowrap; }
+  .side-foot { margin: 0; padding: 0; }
+  .main { overflow: visible; padding-block: 16px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .cal { min-height: 0; }
+  .grid { grid-auto-rows: 78px; }
+  .grid.wk { grid-auto-rows: 170px; }
+  .cell { padding: 5px; }
+  .stack { right: 6px; bottom: 6px; width: calc(100% - 12px); height: 42px; aspect-ratio: auto; max-height: none; }
+  .grid.wk .stack { height: auto; aspect-ratio: 1; }
+  .cover-text { font-size: 10.5px; -webkit-line-clamp: 2; }
+  .seg button { padding: 4px 13px; }
+  .sem-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .panel { width: 100%; top: auto; max-height: 88%; border-radius: 16px 16px 0 0; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .find form { flex-direction: column; }
+}
+</style>
+</head>
+<body>
+
+<div class="app" id="app">
+  <aside class="side" id="side" aria-label="캘린더 목록"></aside>
+  <main class="main" id="main"></main>
+  <div id="scrim" class="scrim" hidden></div>
+  <section class="panel" id="panel" aria-label="날짜 기록" hidden></section>
+</div>
+<dialog id="dlg"></dialog>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+'use strict';
+/* ---------- 작은 도구 ---------- */
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const safeUrl = u => /^(\/files\/|blob:)/.test(u || '') ? u : '';
+const uid = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const pad = n => String(n).padStart(2, '0');
+const ymd = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const parse = s => { const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); };
+const DOW = ['일','월','화','수','목','금','토'];
+const longDate = s => { const d = parse(s); return `${d.getMonth()+1}월 ${d.getDate()}일 ${DOW[d.getDay()]}요일`; };
+const shortDate = s => { const d = parse(s); return `${d.getFullYear()}.${pad(d.getMonth()+1)}.${pad(d.getDate())}`; };
+const ampm = at => { const m = /T(\d\d):(\d\d)/.exec(at || ''); if (!m) return ''; const h = +m[1]; return `${h<12?'오전':'오후'} ${h%12||12}:${m[2]}`; };
+const lsGet = (k, f) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : f; } catch { return f; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } };
+let toastTimer;
+function toast(msg) { const t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => t.hidden = true, 4200); }
+const KINDS = ['대회','대외활동','학생회','동아리','수업','진로','추억','기타'];
+const COLORS = ['blue','teal','green','amber','orange','rose','violet','slate'];
+const COLOR_NAMES = { blue:'파랑', teal:'청록', green:'초록', amber:'노랑', orange:'주황', rose:'분홍', violet:'보라', slate:'회색' };
+const colorVar = c => `var(--c-${COLORS.includes(c) ? c : 'blue'})`;
+const VIS = { private:'개인 공개', members:'멤버 공개', public:'전체 공개' };
+const norm = c => ({...c, members:c.members || [], admins:c.admins || [], requests:c.requests || [], color:COLORS.includes(c.color) ? c.color : 'blue',
+  canPost:c.canPost ?? c.role === 'owner', canInvite:c.canInvite ?? c.role === 'owner'});
+const ORGS = ['동아리','학생회','학과','교내 단체'];
+// AI가 기록에서 고르는 역량 목록. 목록을 정해 두어야 4년 동안의 역량을 모아 셀 수 있습니다
+const SKILLS = ['리더십','협업','커뮤니케이션','문제 해결','기획','실행력','분석력','전문성','창의성','책임감'];
+
+/* ---------- 상태 ---------- */
+const today = ymd(new Date());
+['prefs', 'story'].forEach(k => { try { const old = localStorage.getItem(`hgr-${k}`); if (old !== null && localStorage.getItem(`moa-${k}`) === null) localStorage.setItem(`moa-${k}`, old); localStorage.removeItem(`hgr-${k}`); } catch {} });
+const prefs = Object.assign({ entry: 2025, hidden: [] }, lsGet('moa-prefs', {}));
+const S = { cals:{}, moments:{}, days:{}, allCovers:{} };
+const V = { cal:'all', view:'calendar', mode:'month', y:new Date().getFullYear(), m:new Date().getMonth(), sel:today, panelCal:null, kind:'전체', browse:'전체', panelOpen:innerWidth > 1160, menu:false, hero:{}, findQ:'', find:null };
+const newDraft = () => ({ open:false, text:'', files:[], edit:null, remove:[], secret:false, targets:null, rep:null });
+let draft = newDraft();
+const R = { me:null, myName:'', myEmail:'', ai:false, names:{}, pending:0, waiting:[] };
+let summarizing = null, storyBusy = false, findBusy = false, story = lsGet('moa-story', '');
+const session = () => !!R.me;
+const inviteLink = c => `${location.origin}/join/${c.invite}`;
+async function api(method, url, body) {
+  const res = await fetch(url, { method, headers:{ 'Content-Type':'application/json', 'X-Requested-With':'moa' }, body:body === undefined ? undefined : JSON.stringify(body) });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) { const e = new Error(data.error || '요청을 처리하지 못했어요.'); e.status = res.status; throw e; }
+  return data;
+}
+
+/* ---------- 저장 ---------- */
+const PATHS = { cals:'cals', moments:'moments', days:'days', allCovers:'all-covers' };
+function track(p, ok) { R.pending++; return p.then(ok).catch(e => toast(e.message)).finally(() => { R.pending--; }); }
+function put(coll, o) { S[coll][o.id] = o; return track(api('PUT', `/api/${PATHS[coll]}/${o.id}`, o)); }
+function drop(coll, o) { delete S[coll][o.id]; return track(api('DELETE', `/api/${PATHS[coll]}/${o.id}`)); }
+function applyState(d) {
+  ['cals','moments','days','allCovers'].forEach(k => { S[k] = {}; (d[k] || []).forEach(o => { S[k][o.id] = k === 'cals' ? norm(o) : o; }); });
+  R.names = d.names || {};
+  R.waiting = d.pending || [];
+  (d.cals || []).forEach(c => (c.requests || []).forEach(r => { R.names[r.id] = r.name; }));
+}
+async function loadState(cal) { applyState(await api('GET', `/api/state${cal ? `?cal=${cal}` : ''}`)); }
+
+/* ---------- 조회 ---------- */
+const isMember = c => !!c.role;
+const canSee = () => true;
+const isOwn = isMember;
+const allCals = () => Object.values(S.cals);
+const calList = () => allCals().filter(isOwn);
+const isLocked = c => c.vis === 'private' || (c.vis === 'members' && (c.members || []).length <= 1);
+const isOwner = c => c?.role === 'owner';
+// 운영진: 만든 사람과 운영진으로 지정된 멤버. 단체 캘린더에서는 이들만 기록하고 초대합니다
+const isAdmin = c => c?.role === 'owner' || c?.role === 'admin';
+const visibleCals = () => V.cal === 'all' ? calList().filter(c => !prefs.hidden.includes(c.id)) : allCals().filter(c => c.id === V.cal);
+const momentsOf = (calId, date) => Object.values(S.moments).filter(m => m.calId === calId && m.date === date).sort((a,b) => String(a.at).localeCompare(String(b.at)));
+const dayOf = (calId, date) => S.days[`${calId}_${date}`] || { id:`${calId}_${date}`, calId, date };
+const urlOf = m => safeUrl(m.url);
+const canWrite = c => !!c && !isVisitor() && isOwn(c) && !!c.canPost;
+const nameOf = m => m.by === R.me ? '나' : R.names[m.by] || '멤버';
+const postKey = m => m.post || m.id;
+function postsOf(calId, date) {
+  const map = new Map();
+  momentsOf(calId, date).forEach(m => {
+    const k = postKey(m), p = map.get(k) || { id:k, at:m.at, by:m.by, name:nameOf(m), secret:!!m.secret, text:null, media:[] };
+    m.kind === 'text' ? p.text = m : p.media.push(m);
+    map.set(k, p);
+  });
+  return [...map.values()];
+}
+function coverOf(calId, date) {
+  const ms = momentsOf(calId, date); if (!ms.length) return null;
+  const d = dayOf(calId, date), c = d.cover;
+  if (c?.kind === 'summary' && d.ai) return { type:'text', text:d.ai.summary };
+  if (c?.kind === 'moment') {
+    const m = ms.find(x => x.id === c.id);
+    if (m?.kind === 'photo') return { type:'photo', url:urlOf(m) };
+    if (m?.kind === 'text') return { type:'text', text:m.text };
+  }
+  const p = ms.find(m => m.kind === 'photo'); if (p) return { type:'photo', url:urlOf(p) };
+  const t = ms.find(m => m.kind === 'text');  if (t) return { type:'text', text:t.text };
+  return { type:'video' };
+}
+function semesterOf(s) {
+  const d = parse(s), m = d.getMonth()+1, half = (m>=3 && m<=8) ? 1 : 2, yr = m<=2 ? d.getFullYear()-1 : d.getFullYear();
+  const grade = yr - prefs.entry + 1, start = new Date(yr, half === 1 ? 2 : 8, 1);
+  return { grade, half, week: Math.floor(((d - start) / 864e5 + start.getDay()) / 7) + 1, inRange: grade>=1 && grade<=4 };
+}
+function semLabel(s) { const x = semesterOf(s); if (!x.inRange) return ''; return `${x.grade}학년 ${x.half}학기` + (x.week>=1 && x.week<=16 ? ` ${x.week}주차` : ' 방학'); }
+const ICON = {
+  cal:'<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="2" y="3" width="12" height="11" rx="2"/><path d="M2 6.5h12M5.5 1.5v3M10.5 1.5v3"/></svg>',
+  years:'<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M3 13.5V2.5h7.5L13 5v8.5zM5.5 7h5M5.5 10h5"/></svg>',
+  browse:'<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>',
+  gear:'<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="8" cy="8" r="2.2"/><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M3.4 12.6l1.4-1.4M11.2 4.8l1.4-1.4"/></svg>',
+  plus:'<svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M7 2v10M2 7h10"/></svg>',
+  x:'<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13"/></svg>',
+  edit:'<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><path d="M2.5 13.5l.7-3.2 7.6-7.6 2.5 2.5-7.6 7.6z"/></svg>',
+  trash:'<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><path d="M3 4.5h10M6 4.5V3h4v1.5M4 4.5l.7 9h6.6l.7-9"/></svg>',
+  person:'<svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6.5" r="3.2"/><path d="M3 16c.5-3.6 3-5 6-5s5.5 1.4 6 5z"/></svg>',
+  lock:'<svg class="lock" width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3" role="img" aria-label="나만 보는 캘린더"><rect x="2" y="5.200" width="8" height="5.800" rx="1.300"/><path d="M4 5V3.500a2 2 0 0 1 4 0V5"/></svg>',
+  down:'<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M3 5l4 4 4-4"/></svg>',
+};
+
+/* ---------- 왼쪽 ---------- */
+function renderSide() {
+  const row = c => { const hidden = prefs.hidden.includes(c.id), on = V.cal === c.id && V.view === 'calendar';
+    return `<div class="cal-row ${on?'on':''}"><button class="dot-btn" style="--c:${colorVar(c.color)}" data-act="toggle-cal" data-id="${esc(c.id)}" aria-label="${esc(c.name)} 전체 캘린더에 ${hidden?'표시':'숨기기'}" aria-pressed="${!hidden}"><i class="ring ${hidden?'':'fill'}"></i></button><button class="cal-name" data-act="cal" data-id="${esc(c.id)}">${esc(c.name)}${isLocked(c) ? ICON.lock : ''}</button>${isOwner(c) && c.requests.length ? `<button class="req-badge" data-act="edit-cal" data-id="${esc(c.id)}" aria-label="참여 요청 ${c.requests.length}건">${c.requests.length}</button>` : ''}${isOwner(c) ? `<button class="icon-btn row-gear" data-act="edit-cal" data-id="${esc(c.id)}" aria-label="${esc(c.name)} 설정">${ICON.gear}</button>`
+      : c.canInvite && c.vis !== 'private' ? `<button class="icon-btn row-gear" data-act="invite-cal" data-id="${esc(c.id)}" aria-label="${esc(c.name)} 멤버 초대">${ICON.plus}</button>` : ''}</div>`; };
+  const nav = (act, icon, label, on) => `<button class="nav ${on?'on':''}" data-act="${act}" ${act==='cal'?'data-id="all"':''}>${icon}${label}</button>`;
+  $('side').innerHTML = `<div class="logo"><img src="/assets/img.png" alt=""><b>MoA</b></div>
+    ${nav('cal', ICON.cal, '전체 캘린더', V.cal==='all' && V.view==='calendar')}
+    ${nav('years', ICON.years, '대학 4년 기록', V.view==='years')}
+    ${nav('browse', ICON.browse, '둘러보기', V.view==='browse')}
+    <div class="group"><div class="group-head"><span>내 캘린더</span><button class="icon-btn" data-act="new-cal" aria-label="캘린더 만들기">${ICON.plus}</button></div>${calList().map(row).join('') || '<p class="hint">캘린더를 만들어 보세요</p>'}<button class="join-btn" data-act="join">초대 코드로 참여</button>${R.waiting.map(w => `<p class="hint">수락 대기 중 · ${esc(w.name)}</p>`).join('')}</div>
+    <div class="side-foot">${nav('settings', ICON.gear, '설정', false)}</div>`;
+}
+
+/* ---------- 달력 ---------- */
+function cellHtml(date, inMonth) {
+  const cals = visibleCals(), covers = cals.map(c => ({c, cover:coverOf(c.id, date)})).filter(x => x.cover);
+  const pinnedM = V.cal === 'all' && S.moments[S.allCovers[date]?.momentId];
+  const pinned = pinnedM && cals.some(c => c.id === pinnedM.calId) ? (pinnedM.kind === 'photo' ? { type:'photo', url:urlOf(pinnedM) } : { type:'text', text:pinnedM.text }) : null;
+  const main = pinned || (covers.find(x => x.cover.type === 'photo') || covers.find(x => x.cover.type === 'text') || covers[0])?.cover;
+  const cls = ['cell']; if (!inMonth) cls.push('out'); if (date === today) cls.push('today'); if (date === V.sel && V.panelOpen) cls.push('sel');
+  // 사진이 여러 장이면 대표 사진 뒤로 다른 사진을 겹쳐 보여줍니다
+  const others = main?.type === 'photo' ? [...new Set(cals.flatMap(c => momentsOf(c.id, date)).filter(m => m.kind === 'photo').map(urlOf))].filter(u => u !== main.url).slice(0, 2) : [];
+  const layers = others.slice().reverse().map(u => `<img class="${u === others[0] ? 'l1' : 'l2'}" src="${esc(u)}" alt="">`).join('');
+  const body = !main ? '' : main.type === 'photo' ? `<span class="stack">${layers}<img src="${esc(main.url)}" alt=""></span>`
+    : main.type === 'text' ? `<span class="cover-text">${esc(main.text)}</span>` : (V.cal === 'all' ? '' : `<i class="mark"></i>`);
+  const dots = V.cal === 'all' && covers.length ? `<span class="day-dots">${covers.map(x => `<i style="--c:${colorVar(x.c.color)}"></i>`).join('')}</span>` : '';
+  const names = covers.map(x => x.c.name).join(', ');
+  return `<button class="${cls.join(' ')}" data-act="day" data-date="${date}" aria-label="${esc(longDate(date))}${covers.length ? `, ${esc(names)} 기록 있음` : ''}"><span class="cell-top"><span class="num">${parse(date).getDate()}</span>${dots}</span>${body}</button>`;
+}
+function renderCalendar() {
+  const c = S.cals[V.cal], first = new Date(V.y, V.m, 1), selD = parse(V.sel);
+  let heading, grid;
+  const dow = `<div class="dow">${DOW.map(x=>`<span>${x}</span>`).join('')}</div>`;
+  if (V.mode === 'month') {
+    heading = `${V.y}년 ${V.m+1}월`;
+    const start = new Date(V.y, V.m, 1 - first.getDay()), weeks = Math.ceil((first.getDay() + new Date(V.y, V.m+1, 0).getDate()) / 7);
+    let cells = '';
+    for (let i = 0; i < weeks*7; i++) { const d = new Date(start.getFullYear(), start.getMonth(), start.getDate()+i); cells += cellHtml(ymd(d), d.getMonth() === V.m); }
+    grid = `<div class="cal">${dow}<div class="grid">${cells}</div></div>`;
+  } else if (V.mode === 'week') {
+    const start = new Date(selD.getFullYear(), selD.getMonth(), selD.getDate()-selD.getDay()), end = new Date(start.getFullYear(), start.getMonth(), start.getDate()+6);
+    heading = `${start.getMonth()+1}월 ${start.getDate()}일 – ${end.getMonth()+1}월 ${end.getDate()}일`;
+    let cells = '';
+    for (let i = 0; i < 7; i++) cells += cellHtml(ymd(new Date(start.getFullYear(), start.getMonth(), start.getDate()+i)), true);
+    grid = `<div class="cal">${dow}<div class="grid wk">${cells}</div></div>`;
+  } else {
+    heading = longDate(V.sel);
+    const items = visibleCals().flatMap(cal => postsOf(cal.id, V.sel).map(p => ({p, cal})));
+    grid = items.length ? `<div class="dayview">${items.map(({p, cal}) => `<div><span class="label">${esc(cal.name)}</span>${p.media.map(mediaHtml).join('')}${p.text ? `<p>${esc(p.text.text)}</p>` : ''}</div>`).join('')}</div>`
+      : `<div class="empty"><p>이날은 아직 기록이 없어요.</p><button class="btn" data-act="open-panel">기록 남기기</button></div>`;
+  }
+  const title = V.cal === 'all' ? '전체 캘린더' : (c?.name || '캘린더'), visitor = isVisitor();
+  const menu = V.menu ? `<div class="menu"><button data-act="cal" data-id="all">전체 캘린더</button>${calList().map(x => `<button data-act="cal" data-id="${esc(x.id)}">${esc(x.name)}</button>`).join('')}</div>` : '';
+  const rec = c?.recruit?.on ? `<div class="banner"><span class="tag solid">모집 중</span><span>${c.recruit.until ? `${parse(c.recruit.until).getMonth()+1}월 ${parse(c.recruit.until).getDate()}일까지 · ` : ''}${esc(c.recruit.note || '새 회원을 모집합니다.')}</span></div>` : '';
+  const info = !c ? '' : !canWrite(c) ? `<div class="banner">${esc(c.about || '다른 사람의 캘린더를 구경하고 있어요.')}</div>` : '';
+  $('main').innerHTML = `<div class="top"><div class="title-wrap">${visitor ? `<h1>${esc(title)}</h1>` : `<button class="title-btn" data-act="menu" aria-expanded="${V.menu}"><h1>${esc(title)}</h1>${ICON.down}</button>${menu}`}</div>${visitor ? '<button class="btn primary" data-act="to-auth">MoA 시작하기</button>' : ''}</div>
+    ${rec}${info}
+    <div class="bar"><button class="icon-btn" data-act="prev" aria-label="이전">‹</button><h2 aria-live="polite">${esc(heading)}</h2><button class="icon-btn" data-act="next" aria-label="다음">›</button>
+      <button class="btn" data-act="today">오늘</button>
+      <div class="seg" role="group" aria-label="보기 단위">${[['month','월'],['week','주'],['day','일']].map(([k,l]) => `<button class="${V.mode===k?'on':''}" data-act="mode" data-mode="${k}" aria-pressed="${V.mode===k}">${l}</button>`).join('')}</div></div>
+    ${grid}`;
+}
+function mediaHtml(m) {
+  if (m.kind === 'photo') return `<img src="${esc(urlOf(m))}" alt="기록 사진" loading="lazy">`;
+  if (m.kind === 'video') return `<video src="${esc(safeUrl(m.url))}" data-end="${Number(m.clipEnd)||5}" muted loop playsinline controls preload="metadata" aria-label="5초 영상"></video>`;
+  return '';
+}
+
+/* ---------- 대학 4년 기록 ---------- */
+function activities() {
+  const map = {};
+  Object.values(S.days).forEach(d => {
+    const c = S.cals[d.calId]; if (!c || !canSee(c) || !isOwn(c) || !d.ai?.title) return;
+    if (!momentsOf(d.calId, d.date).length) return;
+    const a = map[d.ai.title] ||= { title:d.ai.title, kind:d.ai.kind, days:[] };
+    a.days.push(d);
+  });
+  return Object.values(map).map(a => { a.days.sort((x,y) => x.date.localeCompare(y.date)); return a; }).sort((a,b) => b.days.at(-1).date.localeCompare(a.days.at(-1).date));
+}
+const facts = ai => [['목적',ai.purpose],['과정',ai.process],['역할',ai.role],['성과',ai.result],['배운 점',ai.learned],['경험',ai.experience]].filter(([,v]) => v).map(([k,v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('');
+// 역량: 날짜 패널에서는 근거까지, 카드에서는 이름만 보여 줍니다
+const skillRows = ai => (ai.skills || []).map(s => `<dt>${esc(s.name)}</dt><dd>${esc(s.evidence)}</dd>`).join('');
+const skillsOf = a => [...new Set(a.days.flatMap(d => (d.ai.skills || []).map(s => s.name)))];
+// 4년 동안 각 역량이 드러난 활동 수
+function skillSummary(all) {
+  const n = {}; all.forEach(a => skillsOf(a).forEach(s => n[s] = (n[s] || 0) + 1));
+  const list = SKILLS.filter(s => n[s]).sort((a, b) => n[b] - n[a]);
+  return list.length ? `<h2 class="section-title">나의 역량</h2><div class="skill-sum">${list.map(s => `<span class="tag">${esc(s)}<b>${n[s]}</b></span>`).join('')}</div><p class="sub">숫자는 그 역량이 드러난 활동 수예요. AI 요약에서 근거가 있는 것만 셌어요.</p>` : '';
+}
+const skillTags = names => names.length ? `<span class="skills">${names.map(n => `<span class="tag">${esc(n)}</span>`).join('')}</span>` : '';
+const span = a => { const f = a.days[0].date, l = a.days.at(-1).date; return f === l ? shortDate(f) : `${shortDate(f)} – ${shortDate(l)}`; };
+function activityCard(a, reason) {
+  const l = a.days.at(-1);
+  return `<button class="acard" data-act="goto" data-cal="${esc(l.calId)}" data-date="${l.date}"><span class="label">${esc(a.kind)} · ${span(a)}</span><h3>${esc(a.title)}</h3><span class="sub">${esc(reason || l.ai.summary)}</span>${skillTags(skillsOf(a))}<dl class="facts">${facts(l.ai)}</dl></button>`;
+}
+function renderYears() {
+  const all = activities(), list = V.kind === '전체' ? all : all.filter(a => a.kind === V.kind);
+  const pending = new Set(Object.values(S.moments).filter(m => { const c = S.cals[m.calId]; return c && canSee(c) && isOwn(c) && !dayOf(m.calId, m.date).ai; }).map(m => m.calId + m.date)).size;
+  const nowS = semesterOf(today);
+  let sems = '';
+  for (let g = 1; g <= 4; g++) for (let h = 1; h <= 2; h++) {
+    const items = list.flatMap(a => { const d = a.days.find(d => { const s = semesterOf(d.date); return s.grade === g && s.half === h; }); return d ? [{a, d}] : []; });
+    const future = g > nowS.grade || (g === nowS.grade && h > nowS.half), now = g === nowS.grade && h === nowS.half;
+    sems += `<div class="sem ${now?'now':''} ${future?'future':''}"><h3>${g}학년 ${h}학기</h3>${items.map(({a,d}) => `<button class="chip" data-act="goto" data-cal="${esc(d.calId)}" data-date="${d.date}">${esc(a.title)}</button>`).join('')}${future ? '<span class="sub">아직 쓰지 않은 학기</span>' : ''}</div>`;
+  }
+  const found = V.find ? `<div class="cards">${V.find.map(r => activityCard(r.a, r.reason)).join('')}</div>${V.find.length ? '' : '<p class="sub">어울리는 활동을 찾지 못했어요. 문항을 조금 바꿔 보세요.</p>'}` : '';
+  $('main').innerHTML = `<div class="top"><div><h1>대학 4년 기록</h1><p class="sub">정리된 활동 ${all.length}개${pending ? ` · 아직 요약하지 않은 날 ${pending}일` : ''}</p></div>
+      ${R.ai ? `<button class="btn" data-act="story" ${all.length && !storyBusy ? '' : 'disabled'}>${storyBusy ? '쓰는 중' : '나의 성장 이야기 쓰기'}</button>` : ''}</div>
+    ${skillSummary(all)}
+    <div class="find"><h2 class="section-title">자기소개서에 쓸 경험 찾기</h2>
+      <form data-form="find"><input id="find-q" aria-label="자기소개서 문항이나 지원 분야" value="${esc(V.findQ)}" placeholder="자기소개서 문항이나 지원 분야를 입력하세요"><button class="btn primary" type="submit" ${findBusy?'disabled':''}>${findBusy?'찾는 중':'경험 찾기'}</button></form>
+      ${found}</div>
+    ${story ? `<h2 class="section-title">나의 성장 이야기</h2><div class="story" id="story">${esc(story)}</div>` : ''}
+    <div class="filters" role="group" aria-label="활동 종류">${['전체', ...KINDS].map(k => `<button class="filter ${V.kind===k?'on':''}" data-act="kind" data-kind="${k}" aria-pressed="${V.kind===k}">${k}</button>`).join('')}</div>
+    <div class="sem-grid">${sems}</div>
+    <h2 class="section-title">활동 카드</h2>
+    ${list.length ? `<div class="cards">${list.map(a => activityCard(a)).join('')}</div>` : `<p class="sub">날짜를 열고 AI 요약을 받으면 활동 카드가 여기에 쌓여요.</p>`}`;
+}
+
+/* ---------- 둘러보기 ---------- */
+function renderBrowse() {
+  const open = allCals().filter(c => c.vis === 'public');
+  const pass = c => V.browse === '전체' ? true : V.browse === '단체' ? !!c.org : V.browse === '모집 중' ? !!c.recruit?.on : !c.org;
+  const cards = open.filter(pass).sort((a,b) => (b.recruit?.on?1:0) - (a.recruit?.on?1:0)).map(c => {
+    const ms = Object.values(S.moments).filter(m => m.calId === c.id).sort((a,b) => b.date.localeCompare(a.date));
+    const pics = ms.filter(m => m.kind === 'photo').slice(0, 4), n = new Set(ms.map(m => m.date)).size;
+    const strip = Array.from({length:4}, (_, i) => pics.at(i) ? `<img src="${esc(urlOf(pics.at(i)))}" alt="">` : '<i></i>').join('');
+    return `<button class="acard" data-act="cal" data-id="${esc(c.id)}"><span class="strip">${strip}</span><span class="ccard-meta"><span class="tag">${esc(c.org || '학생')}</span>${c.recruit?.on ? '<span class="tag solid">모집 중</span>' : ''}</span><h3>${esc(c.name)}</h3><span class="sub">${esc(c.recruit?.on ? (c.recruit.note || '') : (c.about || `기록 ${n}일`))}</span><span class="label">기록 ${n}일${ms[0] ? ` · 최근 ${shortDate(ms[0].date)}` : ''}</span></button>`;
+  }).join('');
+  $('main').innerHTML = `<div class="top"><div><h1>둘러보기</h1><p class="sub">다른 학생과 교내 단체가 실제로 해 온 활동을 캘린더로 봅니다.</p></div></div>
+    <div class="filters" role="group" aria-label="보기">${['전체','단체','모집 중','학생'].map(k => `<button class="filter ${V.browse===k?'on':''}" data-act="browse-filter" data-k="${k}" aria-pressed="${V.browse===k}">${k}</button>`).join('')}</div>
+    ${cards ? `<div class="cards">${cards}</div>` : '<p class="sub">아직 공개된 캘린더가 없어요.</p>'}`;
+}
+
+/* ---------- 날짜 패널 ---------- */
+function panelCal() {
+  const cals = visibleCals();
+  if (V.panelCal && cals.some(c => c.id === V.panelCal)) return S.cals[V.panelCal];
+  return cals.find(c => momentsOf(c.id, V.sel).length) || cals.find(canWrite) || cals[0] || null;
+}
+const canEditPost = (cal, p) => !isVisitor() && (isAdmin(cal) || (p.by === R.me && canWrite(cal)));
+const composeTargets = () => { const main = panelCal(); if (V.cal !== 'all' || draft.edit) return main ? [main] : []; return (draft.targets || (main && canWrite(main) ? [main.id] : [])).map(id => S.cals[id]).filter(Boolean); };
+function postHtml(cal, p, d, write) {
+  const isCover = id => d.cover?.kind === 'moment' && d.cover.id === id;
+  const heroId = V.hero[p.id] && p.media.some(m => m.id === V.hero[p.id]) ? V.hero[p.id] : (p.media.find(m => isCover(m.id)) || p.media.find(m => m.kind === 'photo') || p.media[0])?.id;
+  const hero = p.media.find(m => m.id === heroId);
+  const pick = (id, label, onLabel) => write ? `<button class="pick ${isCover(id)?'on':''}" data-act="cover" data-id="${esc(id)}" aria-pressed="${isCover(id)}">${isCover(id) ? onLabel : label}</button>` : '';
+  const pinned = id => S.allCovers[V.sel]?.momentId === id;
+  const pin = id => V.cal === 'all' ? `<button class="pick ${pinned(id)?'on':''}" data-act="all-thumb" data-id="${esc(id)}" aria-pressed="${pinned(id)}">${pinned(id) ? '전체 썸네일' : '전체 썸네일로'}</button>` : '';
+  const heroHtml = hero ? `<div class="hero">${mediaHtml(hero)}${hero.kind === 'photo' ? `<div class="hero-picks">${pick(hero.id, '대표 사진으로', '대표 사진')}${pin(hero.id)}</div>` : ''}</div>` : '';
+  const text = p.text ? `<div class="post-text"><p>${esc(p.text.text)}</p><div class="text-picks">${pick(p.text.id, '겉면으로', '달력 겉면')}${pin(p.text.id)}</div></div>` : '';
+  const tn = m => `<button class="tn ${m.id===heroId?'on':''}" data-act="hero" data-post="${esc(p.id)}" data-id="${esc(m.id)}" aria-label="${m.kind==='photo'?'사진':'영상'} 크게 보기">${m.kind === 'photo' ? `<img src="${esc(urlOf(m))}" alt="">` : `<video src="${esc(safeUrl(m.url))}" muted preload="metadata"></video><span>▶</span><em>0:${pad(Math.round(m.clipEnd||5))}</em>`}</button>`;
+  const files = p.media.length > 1 || p.media.some(m => m.kind === 'video') ? `<div class="attach-wrap"><span class="label">첨부 파일</span><div class="thumbs">${p.media.map(tn).join('')}</div></div>` : '';
+  const edit = canEditPost(cal, p) ? `<button class="icon-btn" data-act="edit-post" data-id="${esc(p.id)}" aria-label="기록 수정">${ICON.edit}</button><button class="icon-btn" data-act="del-post" data-id="${esc(p.id)}" aria-label="기록 삭제">${ICON.trash}</button>` : '';
+  const meta = [ampm(p.at), p.secret ? '비밀 기록' : '', p.media.some(m => m.temp) ? '영상은 새로고침하면 사라져요' : ''].filter(Boolean).join(' · ');
+  return `<article class="post">${heroHtml}${text}${files}<div class="who"><span class="avatar">${ICON.person}</span><div>${esc(p.name)}<small>${esc(meta)}</small></div>${edit}</div></article>`;
+}
+function composerHtml(cal, posts) {
+  const editing = !!draft.edit, post = editing ? posts.find(p => p.id === draft.edit) : null;
+  const keep = post ? post.media.filter(m => !draft.remove.includes(m.id)) : [];
+  const targets = composeTargets(), choices = calList().filter(canWrite);
+  const shareable = !editing && targets.some(c => c.vis !== 'private');
+  const picker = V.cal === 'all' && !editing && choices.length > 1 ? `<div class="targets"><span class="label">올릴 캘린더, 여러 개 고를 수 있어요</span><div class="cal-tabs" role="group" aria-label="올릴 캘린더">${choices.map(c => { const on = targets.some(t => t.id === c.id); return `<button type="button" class="cal-tab ${on?'on':''}" data-act="target" data-id="${esc(c.id)}" aria-pressed="${on}"><i class="ring fill" style="--c:${colorVar(c.color)}"></i>${esc(c.name)}</button>`; }).join('')}</div></div>` : '';
+  const photoCount = keep.filter(m => m.kind === 'photo').length + draft.files.filter(f => f.kind === 'photo').length;
+  const repMark = on => on ? '<em>대표</em>' : '';
+  const keepThumb = m => { const on = draft.rep?.old === m.id; return `<div class="${on?'rep':''}">${m.kind==='photo' ? `<button type="button" class="rep-btn" data-act="rep" data-old="${esc(m.id)}" aria-pressed="${on}" aria-label="대표 사진으로 고르기"><img src="${esc(urlOf(m))}" alt=""></button>${repMark(on)}` : '영상'}<button type="button" class="x" data-act="remove-existing" data-id="${esc(m.id)}" aria-label="첨부 빼기">×</button></div>`; };
+  const newThumb = (f, i) => { const on = draft.rep?.i === i; return `<div class="${on?'rep':''}">${f.kind==='photo' ? `<button type="button" class="rep-btn" data-act="rep" data-i="${i}" aria-pressed="${on}" aria-label="대표 사진으로 고르기"><img src="${esc(f.preview)}" alt=""></button>${repMark(on)}` : '5초 영상'}<button type="button" class="x" data-act="unattach" data-i="${i}" aria-label="첨부 빼기">×</button></div>`; };
+  return `<form class="composer" data-form="compose"><label class="t" for="cmp-text">${editing ? '기록 수정' : '이날의 기록'}</label>
+    ${picker}
+    <textarea id="cmp-text" placeholder="오늘 있었던 일을 한 줄만 적어도 충분해요">${esc(draft.text)}</textarea>
+    ${keep.length || draft.files.length ? `<div class="pending">${keep.map(keepThumb).join('')}${draft.files.map(newThumb).join('')}</div>` : ''}
+    ${photoCount > 1 ? '<span class="label">사진을 눌러 대표 사진을 고르세요.</span>' : ''}
+    <div class="attach"><input id="cmp-photo" type="file" accept="image/*" multiple data-attach="photo"><label class="btn" for="cmp-photo">사진</label>
+      <input id="cmp-video" type="file" accept="video/*" data-attach="video"><label class="btn" for="cmp-video">5초 영상</label></div>
+    ${shareable ? `<label class="check"><input type="checkbox" id="cmp-secret" ${draft.secret?'checked':''}>비밀 기록, 나만 볼 수 있어요</label>` : ''}
+    <div class="row-end">${posts.length || editing ? '<button type="button" class="btn" data-act="cancel-compose">취소</button>' : ''}<button class="btn primary" type="submit" id="cmp-send">${editing ? '저장' : '남기기'}</button></div></form>`;
+}
+function renderPanel() {
+  const p = $('panel'), small = matchMedia('(max-width: 1160px)').matches;
+  const open = V.panelOpen && V.view === 'calendar';
+  p.hidden = !open; $('app').classList.toggle('no-panel', !open); $('scrim').hidden = !(open && small);
+  if (!open) return;
+  const cal = panelCal(), cals = visibleCals();
+  const head = `<div class="panel-head"><div><h2>${longDate(V.sel)}</h2><p class="sub">${esc(semLabel(V.sel))}</p></div><button class="icon-btn" data-act="close" aria-label="닫기">${ICON.x}</button></div>`;
+  if (!cal) { p.innerHTML = head + `<div class="notice">내 캘린더의 + 버튼으로 첫 캘린더를 만들면 이날의 사진과 글을 남길 수 있어요.</div>`; return; }
+  // 위쪽 탭은 그날 기록이 있는 캘린더를 오갈 때만 보여줍니다
+  const recorded = cals.filter(c => momentsOf(c.id, V.sel).length);
+  const tabs = recorded.length > 1 ? `<div class="cal-tabs" role="group" aria-label="기록이 있는 캘린더">${recorded.map(c => `<button class="cal-tab ${c.id===cal.id?'on':''}" data-act="panel-cal" data-id="${esc(c.id)}" aria-pressed="${c.id===cal.id}"><i class="ring fill" style="--c:${colorVar(c.color)}"></i>${esc(c.name)}</button>`).join('')}</div>` : '';
+  const posts = postsOf(cal.id, V.sel), d = dayOf(cal.id, V.sel), write = canWrite(cal);
+  const busy = summarizing === d.id, canAI = R.ai && write;
+  const ai = !posts.length ? '' : d.ai ? `<div class="ai"><div class="ai-head"><span class="label">AI 요약</span>${write ? `<button class="pick ${d.cover?.kind==='summary'?'on':''}" data-act="cover-summary" aria-pressed="${d.cover?.kind==='summary'}">${d.cover?.kind==='summary'?'달력 겉면':'겉면으로'}</button>` : ''}</div><h3>${esc(d.ai.title)}</h3><p>${esc(d.ai.summary)}</p><dl class="facts">${facts(d.ai)}</dl>${d.ai.skills?.length ? `<span class="label">역량과 근거</span><dl class="facts wide">${skillRows(d.ai)}</dl>` : ''}${canAI ? `<button class="btn" data-act="summarize" ${busy?'disabled':''}>${busy?'정리하는 중':'다시 요약'}</button>` : ''}</div>`
+    : canAI ? `<button class="btn primary wide" data-act="summarize" ${busy?'disabled':''}>${busy?'정리하는 중':'AI로 활동 요약'}</button>`
+    : write ? `<div class="notice">AI 요약은 서버에 AI 키를 설정하면 쓸 수 있어요.</div>` : '';
+  const composing = write && (draft.open || draft.edit || !posts.length);
+  const foot = composing ? composerHtml(cal, posts) : write ? `<button class="btn wide" data-act="open-composer">${ICON.plus}기록 추가</button>`
+    : `<div class="notice">${esc(cal.name)}은 ${cal.org ? '운영진' : '멤버'}만 기록할 수 있어요.</div>`;
+  p.innerHTML = head + tabs + (posts.length ? posts.map(x => postHtml(cal, x, d, write)).join('') : (write ? '' : '<p class="sub">이날은 기록이 없어요.</p>')) + ai + foot;
+}
+const isVisitor = () => !R.me;
+function showRoot() { $('app').classList.toggle('visitor', isVisitor()); }
+async function joinByCode(raw) {
+  const code = raw.trim().toUpperCase(); if (!code) return;
+  try {
+    const d = await api('POST', '/api/join', { code });
+    await loadState();
+    if (d.pending) toast(`${d.name}에 참여 요청을 보냈어요. 캘린더 주인이 수락하면 볼 수 있어요.`);
+    else { V.cal = d.cal.id; V.view = 'calendar'; V.panelCal = null; toast(`이미 ${d.cal.name}의 멤버예요.`); }
+  } catch (e) { toast(e.message); }
+  render();
+}
+async function answerRequest(calId, userId, accept) {
+  try {
+    const d = await api('POST', `/api/cals/${calId}/requests/${userId}`, { accept });
+    S.cals[calId] = norm(d);
+    if (accept && !dlgMembers.includes(userId)) dlgMembers.push(userId);  // 설정 창을 저장해도 수락한 멤버가 빠지지 않게
+    drawRequests(calId); drawMembers(); renderSide();
+    toast(accept ? '참여를 수락했어요.' : '참여 요청을 거절했어요.');
+  } catch (e) { toast(e.message); }
+}
+async function copyText(text, inputId) {
+  try { await navigator.clipboard.writeText(text); toast('복사했어요.'); }
+  catch { const el = inputId && $(inputId); if (el) { el.focus(); el.select(); } toast('복사하지 못했어요. 표시된 내용을 직접 복사해 주세요.'); }
+}
+function renderMain() { V.view === 'years' ? renderYears() : V.view === 'browse' ? renderBrowse() : renderCalendar(); }
+function render() { showRoot(); renderSide(); renderMain(); renderPanel(); }
+function softRender() {  // 입력 중에는 입력칸을 건드리지 않습니다
+  showRoot(); renderSide();
+  if (document.activeElement?.id !== 'find-q') renderMain();
+  if (document.activeElement?.id !== 'cmp-text') renderPanel();
+}
+/* ---------- 파일 ---------- */
+function imageToBlob(file, max, q) {
+  return new Promise((ok, no) => {
+    const u = URL.createObjectURL(file), img = new Image();
+    img.onload = () => { const r = Math.min(1, max / Math.max(img.width, img.height)), c = document.createElement('canvas');
+      c.width = Math.round(img.width*r); c.height = Math.round(img.height*r); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(u); c.toBlob(b => b ? ok(b) : no(new Error('blob')), 'image/jpeg', q); };
+    img.onerror = () => { URL.revokeObjectURL(u); no(new Error('decode')); };
+    img.src = u;
+  });
+}
+const toDataUrl = b => new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = no; r.readAsDataURL(b); });
+function videoLength(file) {
+  return new Promise(ok => { const u = URL.createObjectURL(file), v = document.createElement('video'); v.preload = 'metadata';
+    v.onloadedmetadata = () => { URL.revokeObjectURL(u); ok(v.duration); }; v.onerror = () => { URL.revokeObjectURL(u); ok(null); }; v.src = u; });
+}
+async function attach(kind, files) {
+  for (const file of files) {
+    if (kind === 'photo') {
+      try { draft.files.push({kind, file, preview: await toDataUrl(await imageToBlob(file, 240, .7))}); }
+      catch { toast(`${file.name}을 읽지 못했어요. JPG나 PNG 사진을 올려 주세요.`); }
+    } else {
+      if (file.size > 20*1024*1024) { toast('영상이 20MB보다 커요. 더 짧은 영상을 골라 주세요.'); continue; }
+      const len = await videoLength(file);
+      if (len === null) { toast('이 영상 형식은 재생할 수 없어요. MP4 영상을 올려 주세요.'); continue; }
+      if (len > 5.5) toast('앞 5초만 재생돼요.');
+      draft.files.push({kind, file, clipEnd: Math.min(5, len || 5)});
+    }
+  }
+  renderPanel();
+}
+async function upload(blob) {
+  const res = await fetch('/api/upload', { method:'POST', headers:{ 'Content-Type':blob.type, 'X-Requested-With':'moa' }, body:blob });
+  const d = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(d.error || '파일을 올리지 못했어요.');
+  return d;
+}
+async function storeFile(f) {
+  const a = await upload(f.kind === 'photo' ? await imageToBlob(f.file, 1400, .82) : f.file);
+  return { url:a.url, assetId:a.id, ...(f.kind === 'video' ? { clipEnd:f.clipEnd } : {}) };
+}
+function dropMoment(m) { drop('moments', m); }
+async function compose() {
+  const editing = draft.edit, targets = composeTargets().filter(canWrite);
+  if (!targets.length) { toast('기록할 캘린더를 골라 주세요.'); return; }
+  const text = draft.text.trim();
+  if (!editing && !text && !draft.files.length) { toast('글을 쓰거나 사진, 영상을 추가해 주세요.'); return; }
+  const btn = $('cmp-send'); if (btn) { btn.disabled = true; btn.textContent = '올리는 중'; }
+  const date = V.sel, uploaded = new Map();
+  try {
+    for (const cal of targets) {
+      const postId = editing || uid('p'), old = editing ? postsOf(cal.id, date).find(p => p.id === editing) : null;
+      const secret = old ? old.secret : !!draft.secret && cal.vis !== 'private';
+      const base = i => { const b = { calId:cal.id, date, post:postId, by:R.me, at:old?.at || new Date(Date.now()+i).toLocaleString('sv').replace(' ','T') };
+        if (secret) b.secret = true; return b; };
+      let i = 0, repId = draft.rep?.old || null;
+      for (const [n, f] of draft.files.entries()) {
+        if (!uploaded.has(n)) uploaded.set(n, await storeFile(f));
+        const id = uid('m');
+        await put('moments', {...base(i++), id, kind:f.kind, ...uploaded.get(n)});
+        if (draft.rep?.i === n) repId = id;
+      }
+      if (old) {
+        draft.remove.forEach(id => S.moments[id] && dropMoment(S.moments[id]));
+        if (old.text && !text) drop('moments', old.text);
+        else if (old.text) put('moments', {...old.text, text});
+        else if (text) put('moments', {...base(i++), id:uid('m'), kind:'text', text});
+      } else if (text) put('moments', {...base(i++), id:uid('m'), kind:'text', text});
+      if (repId) { put('days', {...dayOf(cal.id, date), cover:{kind:'moment', id:repId}}); }
+    }
+    if (!editing) V.panelCal = targets[0].id;
+    if (targets.length > 1) toast(`${targets.length}개 캘린더에 올렸어요.`);
+    draft = newDraft();
+  } catch (e) { toast(e.message); }
+  render();
+}
+function pinAllCover(id) {
+  const cur = S.allCovers[V.sel];
+  if (cur?.momentId === id) drop('allCovers', cur);
+  else put('allCovers', { id:V.sel, date:V.sel, momentId:id });
+  render();
+}
+function setCover(cal, date, cover) { put('days', {...dayOf(cal.id, date), cover}); render(); }
+
+/* ---------- AI ---------- */
+// AI에는 글만 보냅니다
+const aiText = async prompt => (await api('POST', '/api/ai', { prompt })).text;
+async function aiJson(prompt) {
+  const t = await aiText(prompt), m = /\{[\s\S]*\}/.exec(t);
+  if (!m) throw new Error('AI 응답을 읽지 못했어요. 다시 눌러 주세요.');
+  return JSON.parse(m[0]);
+}
+const aiErr = e => e.message;
+async function summarize() {
+  const cal = panelCal(), date = V.sel, d = dayOf(cal.id, date);
+  // 공유 캘린더의 요약은 모두에게 보이므로 비밀 기록은 넣지 않습니다
+  // AI에는 글만 보냅니다. 사진·영상은 있다는 사실도 알리지 않습니다
+  const ms = momentsOf(cal.id, date).filter(m => !m.secret && m.kind === 'text' && m.text?.trim());
+  if (!ms.length) { toast('요약할 수 있는 글이 없어요. 글 기록을 먼저 남겨 주세요.'); return; }
+  summarizing = d.id; renderPanel();
+  const known = activities().map(a => a.title).slice(0, 40);
+  const lines = ms.map(m => `글: ${m.text}`);
+  const prompt = `대학생의 하루 기록을 활동 기록으로 정리해 주세요. 기록에 없는 일을 지어내거나 과장하지 마세요. 기록에서 알 수 없는 항목은 빈 문자열로 두세요.
+캘린더: ${cal.name} (${cal.org || '개인'}, ${VIS[cal.vis]})
+날짜: ${date}
+기록:
+${lines.join('\n')}
+이미 있는 활동 이름: ${known.join(', ') || '없음'}. 같은 활동이면 그 이름을 그대로 쓰세요.
+경험: 자기소개서에 그대로 옮길 수 있게, 기록에 나온 상황·한 일·결과를 한두 문장으로 쓰세요.
+역량: [${SKILLS.join(', ')}] 중에서 기록에 근거가 분명한 것만 0~3개 고르고, 그렇게 본 근거를 기록 내용으로 한 문장 쓰세요. 근거가 약하면 고르지 마세요.
+JSON만 답하세요: {"title":"활동 이름 15자 이내","kind":"${KINDS.join('|')} 중 하나","summary":"한 문장 요약","purpose":"활동의 목적","process":"과정","role":"내 역할","result":"성과","learned":"배운 점","experience":"경험","skills":[{"name":"역량 이름","evidence":"근거"}]}`;
+  try {
+    const r = await aiJson(prompt);
+    const str = v => String(v || '');
+    const seen = new Set(), skills = (Array.isArray(r.skills) ? r.skills : [])
+      .filter(s => SKILLS.includes(s?.name) && str(s.evidence).trim() && !seen.has(s.name) && seen.add(s.name)).slice(0, 3)  // 근거 없는 역량은 버립니다
+      .map(s => ({ name:s.name, evidence:str(s.evidence).slice(0, 200) }));
+    const next = {...dayOf(cal.id, date), ai:{ title:str(r.title).slice(0,40), kind:KINDS.includes(r.kind) ? r.kind : '기타', summary:str(r.summary), purpose:str(r.purpose), process:str(r.process), role:str(r.role), result:str(r.result),
+      learned:str(r.learned), experience:str(r.experience).slice(0, 500), skills, at:Date.now() }};
+    put('days', next);
+  } catch (e) { toast(aiErr(e)); }
+  summarizing = null; render();
+}
+const activityLine = a => { const ai = a.days.at(-1).ai, sk = skillsOf(a);
+  return `${a.title} (${a.kind}, ${span(a)}): ${ai.summary} ${[ai.purpose, ai.process, ai.role, ai.result, ai.learned, ai.experience].filter(Boolean).join(' / ')}${sk.length ? ` [역량: ${sk.join(', ')}]` : ''}`; };
+async function writeStory() {
+  storyBusy = true; story = ''; render();
+  const prompt = `대학생의 활동 기록입니다. 이 기록에서만 근거를 찾아, 이 학생이 어떻게 성장해 왔는지 다섯 문장 안쪽의 한국어 이야기로 써 주세요. 1인칭으로 쓰고, 반복되는 강점과 달라진 점을 구체적인 활동 이름과 함께 짚어 주세요. 없는 일을 만들지 마세요.\n${activities().slice().reverse().map(a => '- ' + activityLine(a)).join('\n')}`;
+  try {
+    story = await aiText(prompt); lsSet('moa-story', story);
+  } catch (e) { toast(aiErr(e)); }
+  storyBusy = false; render();
+}
+async function findExperience(q) {
+  V.findQ = q; const all = activities(); if (!q) return;
+  if (!R.ai) {  // AI 키가 없으면 낱말이 겹치는 활동을 찾습니다
+    const words = q.split(/\s+/).filter(w => w.length >= 2);
+    V.find = all.map(a => ({a, n:words.filter(w => activityLine(a).includes(w)).length})).filter(x => x.n).sort((x,y) => y.n-x.n).slice(0,3).map(x => ({a:x.a, reason:'문항의 낱말과 겹치는 활동이에요.'}));
+    return renderYears();
+  }
+  findBusy = true; renderYears();
+  const prompt = `자기소개서 문항 또는 지원 분야: ${q}\n\n아래 활동 중 여기에 쓰기 좋은 것을 연관성이 높은 순서로 최대 3개 고르고, 왜 어울리는지 한 문장으로 설명해 주세요. 활동 이름은 목록 그대로 쓰세요. 연관된 활동이 없으면 빈 배열을 주세요.\n${all.map(a => '- ' + activityLine(a)).join('\n')}\n\nJSON만 답하세요: {"picks":[{"title":"활동 이름","reason":"이유"}]}`;
+  try {
+    const r = await aiJson(prompt);
+    V.find = (r.picks || []).map(p => ({a:all.find(a => a.title === p.title), reason:String(p.reason||'')})).filter(x => x.a).slice(0,3);
+  } catch (e) { toast(aiErr(e)); }
+  findBusy = false; renderYears();
+}
+
+/* ---------- 대화상자 ---------- */
+let dlgMembers = [], dlgAdmins = [], dlgOrg = false;
+function calDialog(c) {
+  const isNew = !c; c = c || { name:'', vis:'private', color:COLORS.at(calList().length % COLORS.length) };
+  const dlg = $('dlg'), radio = (v, hint) => `<label class="opt"><input type="radio" name="vis" value="${v}" ${c.vis===v?'checked':''}><span>${VIS[v]}<small>${hint}</small></span></label>`;
+  const memberHint = c.org ? '단체 캘린더예요. 운영진으로 지정한 멤버만 기록하고 초대할 수 있고, 다른 멤버는 보기만 해요.'
+    : '멤버는 이 캘린더를 보고 기록할 수 있어요. 단체 종류를 정하면 운영진만 기록하게 바꿀 수 있어요. 개인 공개 캘린더에 멤버를 넣으면 멤버 공개로 바뀌어요.';
+  const members = isNew ? '<p class="sub">멤버는 캘린더를 만든 뒤 캘린더 설정에서 추가할 수 있어요.</p>'
+    : `<div class="field">멤버<div class="people" id="members"></div><input id="mem-search" placeholder="이름이나 이메일로 찾아 추가"><div class="people" id="mem-hits"></div><small>${memberHint}</small></div>`;
+  dlg.innerHTML = `<form data-form="cal"><h2>${isNew ? '캘린더 만들기' : '캘린더 설정'}</h2>
+    <label class="field">이름<input id="cal-name" required maxlength="24" value="${esc(c.name)}" placeholder="캘린더 이름"></label>
+    <fieldset><legend>색</legend><div class="swatches">${COLORS.map(x => `<label aria-label="${COLOR_NAMES[x]}"><input type="radio" name="color" value="${x}" ${c.color===x?'checked':''}><i style="--c:${colorVar(x)}"></i></label>`).join('')}</div></fieldset>
+    <fieldset><legend>공개 범위</legend>
+      ${radio('private','나만 볼 수 있어요')}
+      ${radio('members','추가한 멤버만 보고 기록할 수 있어요')}
+      ${radio('public','둘러보기에 공개되고, 기록은 멤버만 할 수 있어요')}
+    </fieldset>
+    ${members}
+    ${isNew ? '' : '<div class="field" id="req-wrap" hidden>참여 요청<div id="reqs" class="field"></div><small>초대 코드로 들어온 사람이에요. 수락하면 멤버가 돼요.</small></div>'}
+    ${isNew ? '' : c.vis === 'private' ? '<p class="sub">개인 공개 캘린더는 나만 볼 수 있어 공유 링크가 없어요.</p>' : `<div class="field">멤버 초대<div class="share-row"><span class="code" id="inv-code">${esc(c.invite || '저장하면 만들어져요')}</span><button type="button" class="btn" data-act="copy-code" ${c.invite?'':'disabled'}>링크 복사</button><button type="button" class="btn" data-act="new-code" data-id="${esc(c.id)}">재발급</button></div><small>코드로 들어온 사람은 내가 수락해야 멤버가 돼요. 재발급하면 이전 코드와 링크는 쓸 수 없어요.</small></div>`}
+    ${!isNew && c.vis === 'public' ? `<div class="field">공개 링크<div class="share-row"><input id="pub-link" readonly value="${esc(`${location.origin}/c/${c.id}`)}"><button type="button" class="btn" data-act="copy-link">복사</button></div></div>` : ''}
+    ${!isNew && c.vis === 'public' ? `<label class="field">단체 종류<select id="cal-org"><option value="">개인</option>${ORGS.map(o => `<option ${c.org===o?'selected':''}>${o}</option>`).join('')}</select></label>
+      <label class="field">소개<input id="cal-about" maxlength="60" value="${esc(c.about||'')}"></label>
+      <label class="opt"><input type="checkbox" id="rec-on" ${c.recruit?.on?'checked':''}><span>지금 모집 중<small>캘린더 위와 둘러보기에 모집 안내가 보여요</small></span></label>
+      <label class="field">모집 마감일<input type="date" id="rec-until" value="${esc(c.recruit?.until||'')}"></label>
+      <label class="field">모집 안내<input id="rec-note" maxlength="60" value="${esc(c.recruit?.note||'')}"></label>` : ''}
+    <div class="dlg-foot">${isNew ? '' : `<button type="button" class="btn danger" data-act="del-cal" data-id="${esc(c.id)}">삭제</button>`}<button type="button" class="btn" data-act="dlg-close">취소</button><button class="btn primary" type="submit">${isNew ? '만들기' : '저장'}</button></div></form>`;
+  dlg.dataset.id = isNew ? '' : c.id;
+  dlg.showModal();
+  if (!isNew) { dlgMembers = [...(c.members || [])]; dlgAdmins = [...(c.admins || [])]; dlgOrg = !!c.org; drawMembers(); drawRequests(c.id); }
+}
+function drawRequests(calId) {
+  const wrap = $('req-wrap'), list = S.cals[calId]?.requests || []; if (!wrap) return;
+  wrap.hidden = !list.length;
+  $('reqs').innerHTML = list.map(r => `<div class="req-row"><span>${esc(r.name)}</span><button type="button" class="btn" data-act="req-no" data-cal="${esc(calId)}" data-id="${esc(r.id)}">거절</button><button type="button" class="btn primary" data-act="req-yes" data-cal="${esc(calId)}" data-id="${esc(r.id)}">수락</button></div>`).join('');
+}
+function drawMembers() {
+  const el = $('members'); if (!el) return;
+  el.innerHTML = dlgMembers.map(id => {
+    if (id === R.me) return `<button type="button" disabled>나${dlgOrg ? ' · 운영진' : ''}</button>`;
+    const name = esc(R.names[id] || '멤버'), admin = dlgAdmins.includes(id);
+    if (!dlgOrg) return `<button type="button" data-act="mem-remove" data-id="${esc(id)}">${name} ×</button>`;
+    return `<span class="mem"><button type="button" class="${admin?'on':''}" data-act="mem-admin" data-id="${esc(id)}" aria-pressed="${admin}" title="눌러서 운영진 지정·해제">${name} · ${admin ? '운영진' : '멤버'}</button><button type="button" data-act="mem-remove" data-id="${esc(id)}" aria-label="${name} 빼기">×</button></span>`;
+  }).join('');
+}
+// 운영진(만든 사람이 아닌)이 쓰는 멤버 초대 창
+function inviteDialog(c) {
+  $('dlg').innerHTML = `<form data-form="invite"><h2>${esc(c.name)} 멤버 초대</h2>
+    <div class="field">초대 코드<div class="share-row"><span class="code" id="inv-code">${esc(c.invite || '')}</span><button type="button" class="btn" data-act="copy-code" ${c.invite?'':'disabled'}>링크 복사</button><button type="button" class="btn" data-act="new-code" data-id="${esc(c.id)}">재발급</button></div><small>코드나 링크로 들어온 사람은 캘린더 주인이 수락하면 일반 멤버가 되어 보기만 할 수 있어요.</small></div>
+    <div class="field">직접 추가<input id="mem-search" placeholder="이름이나 이메일로 찾기"><div class="people" id="mem-hits"></div><small>운영진 지정은 캘린더를 만든 사람만 할 수 있어요.</small></div>
+    <div class="dlg-foot"><button type="button" class="btn" data-act="dlg-close">닫기</button></div></form>`;
+  $('dlg').dataset.id = c.id; $('dlg').showModal();
+}
+async function inviteMember(calId, userId, name) {
+  try {
+    const d = await api('POST', `/api/cals/${calId}/members`, { userId });
+    S.cals[calId] = norm(d); R.names[userId] = name; toast(`${name}님을 초대했어요.`); render();
+  } catch (e) { toast(e.message); }
+}
+function settingsDialog() {
+  const y = new Date().getFullYear(), years = Array.from({length:8}, (_, i) => y - i);
+  $('dlg').innerHTML = `<form data-form="settings"><h2>설정</h2>
+    <label class="field">입학 연도<select id="set-entry">${years.map(v => `<option value="${v}" ${v===prefs.entry?'selected':''}>${v}년</option>`).join('')}</select><small>학년과 학기 표시에 쓰여요.</small></label>
+    <hr class="dlg-sep"><h2>내 정보</h2>
+    <label class="field">이름<input id="set-name" required maxlength="40" value="${esc(R.myName)}" autocomplete="name"></label>
+    <label class="field">이메일<input id="set-email" type="email" required maxlength="200" value="${esc(R.myEmail)}" autocomplete="email"></label>
+    <label class="field">새 비밀번호<input id="set-pw" type="password" maxlength="200" autocomplete="new-password" placeholder="바꿀 때만 입력"><small>8자 이상, 영문과 숫자를 포함해 주세요. 바꾸면 다른 기기에서는 로그아웃돼요.</small></label>
+    <label class="field">현재 비밀번호<input id="set-cur" type="password" maxlength="200" autocomplete="current-password"><small>이메일이나 비밀번호를 바꿀 때 필요해요.</small></label>
+    <div class="dlg-foot"><button type="button" class="btn danger" data-act="logout">로그아웃</button><button type="button" class="btn" data-act="dlg-close">취소</button><button class="btn primary" type="submit" id="set-save">저장</button></div></form>`;
+  $('dlg').dataset.id = ''; $('dlg').showModal();
+}
+async function saveSettings() {
+  const body = { entry:Number($('set-entry').value), name:$('set-name').value.trim(), email:$('set-email').value.trim() };
+  const pw = $('set-pw').value, cur = $('set-cur').value;
+  if (pw) body.newPassword = pw;
+  if (cur) body.currentPassword = cur;
+  if ((pw || body.email.toLowerCase() !== R.myEmail) && !cur) { toast('이메일이나 비밀번호를 바꾸려면 현재 비밀번호를 입력해 주세요.'); $('set-cur').focus(); return; }
+  $('set-save').disabled = true;
+  try {
+    const { user } = await api('PATCH', '/api/me', body);
+    R.myName = user.name; R.myEmail = user.email; R.names[R.me] = user.name;
+    prefs.entry = user.entry; lsSet('moa-prefs', prefs);
+    $('dlg').close(); render(); toast('저장했어요.');
+  } catch (e) { toast(e.message); $('set-save').disabled = false; }
+}
+function joinDialog() {
+  $('dlg').innerHTML = `<form data-form="join"><h2>초대 코드로 참여</h2><label class="field">초대 코드<input id="join-code" required maxlength="6" autocomplete="off"></label><div class="dlg-foot"><button type="button" class="btn" data-act="dlg-close">취소</button><button class="btn primary" type="submit">참여하기</button></div></form>`;
+  $('dlg').dataset.id = ''; $('dlg').showModal();
+}
+function delCal(id) {
+  const c = S.cals[id]; if (!c) return;
+  const b = document.querySelector('[data-act="del-cal"]');
+  if (b.dataset.sure !== '1') { b.dataset.sure = '1'; b.textContent = '기록까지 모두 삭제'; return; }
+  Object.values(S.moments).filter(m => m.calId === id).forEach(m => delete S.moments[m.id]);
+  Object.values(S.days).filter(d => d.calId === id).forEach(d => delete S.days[d.id]);
+  drop('cals', c);
+  if (V.cal === id) V.cal = 'all';
+  $('dlg').close(); render(); toast('캘린더를 삭제했어요.');
+}
+
+/* ---------- 이벤트 ---------- */
+function resetDraft() { draft = newDraft(); }
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-act]');
+  if (V.menu && t?.dataset.act !== 'menu') { V.menu = false; if (!t) return renderMain(); }
+  if (!t) return;
+  const a = t.dataset.act, id = t.dataset.id;
+  if (a === 'menu') { V.menu = !V.menu; renderMain(); }
+  else if (a === 'cal') {
+    const fromBrowse = V.view === 'browse';
+    V.cal = id; V.view = 'calendar'; V.panelCal = null; resetDraft();
+    if (fromBrowse) { const last = Object.values(S.moments).filter(m => m.calId === id).map(m => m.date).sort().at(-1); if (last) { const d = parse(last); V.y = d.getFullYear(); V.m = d.getMonth(); V.sel = last; } }
+    render();
+  }
+  else if (a === 'toggle-cal') { prefs.hidden = prefs.hidden.includes(id) ? prefs.hidden.filter(x => x !== id) : [...prefs.hidden, id]; lsSet('moa-prefs', prefs); render(); }
+  else if (a === 'years') { V.view = 'years'; render(); }
+  else if (a === 'browse') { V.view = 'browse'; render(); }
+  else if (a === 'browse-filter') { V.browse = t.dataset.k; renderBrowse(); }
+  else if (a === 'settings') settingsDialog();
+  else if (a === 'join') joinDialog();
+  else if (a === 'copy-code') copyText(`${location.origin}/join/${$('inv-code').textContent}`);
+  else if (a === 'copy-link') copyText($('pub-link').value, 'pub-link');
+  else if (a === 'new-code') api('POST', `/api/cals/${id}/invite`).then(d => { S.cals[id].invite = d.invite; $('inv-code').textContent = d.invite; toast('새 코드를 만들었어요.'); }).catch(e => toast(e.message));
+  else if (a === 'to-auth') location.href = `/login.html?next=${encodeURIComponent(location.pathname)}`;
+  else if (a === 'logout') api('POST', '/api/auth/logout').finally(() => { location.href = '/login.html'; });
+  else if (a === 'new-cal') calDialog(null);
+  else if (a === 'edit-cal') calDialog(S.cals[id]);
+  else if (a === 'invite-cal') inviteDialog(S.cals[id]);
+  else if (a === 'del-cal') delCal(id);
+  else if (a === 'dlg-close') $('dlg').close();
+  else if (a === 'day') { V.sel = t.dataset.date; V.panelOpen = true; V.panelCal = null; resetDraft(); render(); }
+  else if (a === 'goto') { V.sel = t.dataset.date; const d = parse(V.sel); V.y = d.getFullYear(); V.m = d.getMonth(); V.view = 'calendar'; V.cal = 'all'; V.mode = 'month'; V.panelCal = t.dataset.cal; V.panelOpen = true; resetDraft(); render(); }
+  else if (a === 'open-panel') { V.panelOpen = true; render(); }
+  else if (a === 'close') { V.panelOpen = false; resetDraft(); render(); }
+  else if (a === 'prev' || a === 'next') {
+    const s = a === 'prev' ? -1 : 1;
+    if (V.mode === 'month') { const d = new Date(V.y, V.m + s, 1); V.y = d.getFullYear(); V.m = d.getMonth(); }
+    else { const d = parse(V.sel); d.setDate(d.getDate() + s * (V.mode === 'week' ? 7 : 1)); V.sel = ymd(d); V.y = d.getFullYear(); V.m = d.getMonth(); }
+    render();
+  }
+  else if (a === 'today') { const d = new Date(); V.y = d.getFullYear(); V.m = d.getMonth(); V.sel = today; render(); }
+  else if (a === 'mode') { V.mode = t.dataset.mode; render(); }
+  else if (a === 'kind') { V.kind = t.dataset.kind; renderYears(); }
+  else if (a === 'panel-cal') { V.panelCal = id; resetDraft(); renderPanel(); }
+  else if (a === 'hero') { V.hero[t.dataset.post] = id; renderPanel(); }
+  else if (a === 'cover') { const cal = panelCal(), d = dayOf(cal.id, V.sel); setCover(cal, V.sel, d.cover?.id === id ? null : {kind:'moment', id}); }
+  else if (a === 'cover-summary') { const cal = panelCal(), d = dayOf(cal.id, V.sel); setCover(cal, V.sel, d.cover?.kind === 'summary' ? null : {kind:'summary'}); }
+  else if (a === 'open-composer') { draft.open = true; renderPanel(); }
+  else if (a === 'cancel-compose') { resetDraft(); renderPanel(); }
+  else if (a === 'edit-post') { const p = postsOf(panelCal().id, V.sel).find(x => x.id === id); draft = {...newDraft(), open:true, edit:id, text:p?.text?.text || ''}; renderPanel(); }
+  else if (a === 'del-post') {
+    if (t.dataset.sure !== '1') { t.dataset.sure = '1'; t.style.color = 'var(--danger)'; toast('한 번 더 누르면 이 기록이 지워져요.'); return; }
+    momentsOf(panelCal().id, V.sel).filter(m => postKey(m) === id).forEach(dropMoment); render();
+  }
+  else if (a === 'remove-existing') { draft.remove.push(id); renderPanel(); }
+  else if (a === 'unattach') {
+    const n = Number(t.dataset.i); draft.files.splice(n, 1);
+    if (draft.rep?.i === n) draft.rep = null; else if (draft.rep?.i > n) draft.rep.i--;
+    renderPanel();
+  }
+  else if (a === 'rep') { draft.rep = t.dataset.old ? {old:t.dataset.old} : {i:Number(t.dataset.i)}; renderPanel(); }
+  else if (a === 'target') { const cur = composeTargets().map(c => c.id); draft.targets = cur.includes(id) ? cur.filter(x => x !== id) : [...cur, id]; renderPanel(); }
+  else if (a === 'all-thumb') pinAllCover(id);
+  else if (a === 'summarize') summarize();
+  else if (a === 'story') writeStory();
+  else if (a === 'mem-remove') { dlgMembers = dlgMembers.filter(x => x !== id); dlgAdmins = dlgAdmins.filter(x => x !== id); drawMembers(); }
+  else if (a === 'req-yes' || a === 'req-no') { t.disabled = true; answerRequest(t.dataset.cal, id, a === 'req-yes'); }
+  else if (a === 'mem-admin') { dlgAdmins = dlgAdmins.includes(id) ? dlgAdmins.filter(x => x !== id) : [...dlgAdmins, id]; drawMembers(); }
+  else if (a === 'mem-add') {
+    $('mem-hits').innerHTML = ''; $('mem-search').value = '';
+    if (t.closest('[data-form="invite"]')) return inviteMember($('dlg').dataset.id, id, t.dataset.name);
+    if (!dlgMembers.includes(id)) dlgMembers.push(id); R.names[id] = t.dataset.name; drawMembers();
+  }
+});
+$('scrim').addEventListener('click', () => { V.panelOpen = false; resetDraft(); render(); });
+document.addEventListener('input', async e => {
+  if (e.target.id === 'cmp-text') draft.text = e.target.value;
+  if (e.target.id === 'cmp-secret') draft.secret = e.target.checked;
+  if (e.target.id === 'mem-search') {
+    const { users } = await api('GET', `/api/users/search?q=${encodeURIComponent(e.target.value)}`).catch(() => ({ users:[] }));
+    $('mem-hits').innerHTML = users.map(h => `<button type="button" data-act="mem-add" data-id="${esc(h.id)}" data-name="${esc(h.name)}">${esc(h.name)} +</button>`).join('');
+  }
+});
+document.addEventListener('change', e => { if (e.target.id === 'cal-org') { dlgOrg = !!e.target.value; drawMembers(); } const k = e.target.dataset?.attach; if (k) { attach(k, [...e.target.files]); e.target.value = ''; } });
+document.addEventListener('timeupdate', e => { const v = e.target; if (v.tagName === 'VIDEO' && v.currentTime >= Number(v.dataset.end || 5)) v.currentTime = 0; }, true);
+function await_put(c) { track(api('PUT', `/api/cals/${c.id}`, c).then(d => { S.cals[c.id] = norm(d); render(); })); S.cals[c.id] = c; }
+document.addEventListener('submit', e => {
+  e.preventDefault();
+  const f = e.target.dataset.form;
+  if (f === 'compose') compose();
+  if (f === 'join') { const code = $('join-code').value; $('dlg').close(); joinByCode(code); }
+  if (f === 'find') findExperience($('find-q').value.trim());
+  if (f === 'settings') saveSettings();
+  if (f === 'cal') {
+    const name = $('cal-name').value.trim(); if (!name) return;
+    const id = $('dlg').dataset.id, color = e.target.querySelector('[name=color]:checked')?.value || 'blue';
+    const picked = e.target.querySelector('[name=vis]:checked')?.value;
+    if (id) {
+      let c = {...S.cals[id], name, color};
+      c.members = dlgMembers; c.admins = dlgAdmins.filter(x => dlgMembers.includes(x));
+      c.vis = picked === 'private' && dlgMembers.length > 1 ? 'members' : picked;
+      if ($('cal-org')) {
+        c.org = $('cal-org').value; c.about = $('cal-about').value.trim();
+        c.recruit = { on:$('rec-on').checked, until:$('rec-until').value, note:$('rec-note').value.trim() };
+      }
+      put('cals', c); track(api('GET', '/api/state').then(applyState), render);
+    } else {
+      const c = norm({ id:uid('c'), name, color, vis:picked, members:[R.me], by:R.me, role:'owner' });
+      await_put(c); V.cal = c.id; V.view = 'calendar'; resetDraft();
+    }
+    $('dlg').close(); render();
+  }
+});
+addEventListener('resize', () => renderPanel());
+
+/* ---------- 시작 ---------- */
+async function start() {
+  const { user, ai } = await api('GET', '/api/me');
+  R.ai = ai;
+  const pub = /^\/c\/([A-Za-z0-9_-]+)$/.exec(location.pathname), join = /^\/join\/([A-Za-z0-9_-]+)$/.exec(location.pathname);
+  if (!user && !pub) { location.replace(`/login.html?next=${encodeURIComponent(location.pathname)}`); return; }
+  if (user) { R.me = user.id; R.myName = user.name; R.myEmail = user.email; prefs.entry = user.entry; }
+  await loadState(pub?.[1]);
+  if (pub) {
+    if (!S.cals[pub[1]]) { if (!user) { location.replace(`/login.html?next=${encodeURIComponent(location.pathname)}`); return; } toast('볼 수 없는 캘린더예요.'); }
+    else {
+      V.cal = pub[1];
+      const last = Object.values(S.moments).filter(x => x.calId === V.cal).map(x => x.date).sort().at(-1);
+      if (last) { const d = parse(last); V.y = d.getFullYear(); V.m = d.getMonth(); V.sel = last; }
+    }
+  }
+  render();
+  if (join) { await joinByCode(join[1]); history.replaceState(null, '', '/'); }
+  // 다른 멤버의 기록이 보이도록 주기적으로 새로 읽습니다
+  setInterval(() => { if (document.hidden || R.pending || !R.me) return; api('GET', '/api/state').then(d => { if (!R.pending) { applyState(d); softRender(); } }).catch(() => {}); }, 8000);
+}
+start().catch(() => toast('서버에 연결하지 못했어요. 새로고침해 주세요.'));
+</script>
+</body>
+</html>
